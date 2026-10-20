@@ -35,6 +35,7 @@ import multi_agent_orchestrator
 import report_agent
 import chat_interface
 import extraction_agent
+import data_loader
 from config import DATA_DIR, DOCUMENTS_DIR, CHUNKS_DIR, EMBEDDINGS_DIR, VECTORDB_DIR
 
 # -----------------------------------------------------------------------------
@@ -281,14 +282,30 @@ st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 
 # -----------------------------------------------------------------------------
+# First-Time Cloud Boot Verification & Auto-Sync (Hugging Face Dataset)
+# -----------------------------------------------------------------------------
+if not data_loader.is_vectordb_ready():
+    with st.status("🚀 Initializing FinSight AI — Synchronizing ChromaDB vector store from Hugging Face...", expanded=True) as init_status:
+        st.write("First-time boot detected: fetching pre-indexed financial database from `Akshaya-V/finsight_ai_dataset`...")
+        try:
+            data_loader.ensure_data_loaded(progress_callback=lambda msg: st.write(f"• {msg}"))
+            init_status.update(label="✅ FinSight AI Vector Database Ready!", state="complete", expanded=False)
+        except Exception as sync_exc:
+            init_status.update(label="⚠️ Dataset synchronization encountered an issue.", state="error", expanded=True)
+            st.error(f"Error loading ChromaDB from Hugging Face: {sync_exc}")
+
+
+# -----------------------------------------------------------------------------
 # Data Access & Session State Initialization
 # -----------------------------------------------------------------------------
 @st.cache_data(ttl=30)
 def get_index_catalog():
     """Load index catalog from persistent ChromaDB collection."""
     try:
+        if not data_loader.is_vectordb_ready():
+            data_loader.ensure_data_loaded()
         return comparison_agent.load_index_catalog()
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         return {"counts": Counter(), "error": str(exc)}
 
 

@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Large binary / database files (auto-synced from Hugging Face dataset Akshaya-V/finsight_ai_dataset)
+vectordb/
+documents/
+embeddings/
+
+# Streamlit local logs
+*.log
+streamlit_stdout.log
+streamlit_stderr.log
+.DS_Store
+Thumbs.db

@@ -574,11 +574,10 @@ def get_model():
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
-        print("sentence-transformers is not installed.")
-        print("Install it first with:\n    pip install sentence-transformers")
-        sys.exit(1)
+        LOGGER.error("sentence-transformers is not installed.")
+        raise RuntimeError("sentence-transformers is not installed. Run: pip install sentence-transformers")
 
-    print(f"Loading embedding model: {MODEL_NAME}")
+    LOGGER.info(f"Loading embedding model: {MODEL_NAME}")
     try:
         _model = SentenceTransformer(MODEL_NAME, local_files_only=True)
     except Exception:
@@ -595,20 +594,28 @@ def get_collection():
     try:
         import chromadb
     except ImportError:
-        print("chromadb is not installed.")
-        print("Install it first with:\n    pip install chromadb")
-        sys.exit(1)
+        LOGGER.error("chromadb is not installed.")
+        raise RuntimeError("chromadb is not installed. Run: pip install chromadb")
+
+    if not (VECTORDB_DIR / "chroma.sqlite3").exists():
+        try:
+            import data_loader
+            data_loader.ensure_data_loaded()
+        except Exception as exc:
+            LOGGER.warning("Automatic data loading attempt failed: %s", exc)
 
     if not VECTORDB_DIR.exists():
-        print(f"No database found at {VECTORDB_DIR}. Run index_chromadb.py first.")
-        sys.exit(1)
+        msg = f"No database found at {VECTORDB_DIR}. Run index_chromadb.py first."
+        LOGGER.error(msg)
+        raise FileNotFoundError(msg)
 
     client = chromadb.PersistentClient(path=str(VECTORDB_DIR))
     try:
         _collection = client.get_collection(name=COLLECTION_NAME)
-    except Exception:
-        print(f"Collection '{COLLECTION_NAME}' does not exist. Run index_chromadb.py first.")
-        sys.exit(1)
+    except Exception as exc:
+        msg = f"Collection '{COLLECTION_NAME}' does not exist at {VECTORDB_DIR}: {exc}"
+        LOGGER.error(msg)
+        raise RuntimeError(msg)
 
     return _collection
 
